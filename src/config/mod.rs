@@ -92,7 +92,7 @@ pub struct Config<'a> {
     ignore_lockfile: bool,
     output_format: OutputFormat,
     release_source: ReleaseSource,
-    no_tracing: bool,
+    tracing_config: Option<TracingOptions>,
     no_read_min_edition: Option<semver::Version>,
 
     sub_command_config: SubCommandConfig,
@@ -113,7 +113,7 @@ impl<'a> Config<'a> {
             ignore_lockfile: false,
             output_format: OutputFormat::Human,
             release_source: ReleaseSource::RustChangelog,
-            no_tracing: false,
+            tracing_config: None,
             no_read_min_edition: None,
             sub_command_config: SubCommandConfig::None,
         }
@@ -171,8 +171,8 @@ impl<'a> Config<'a> {
         self.release_source
     }
 
-    pub fn no_tracing(&self) -> bool {
-        self.no_tracing
+    pub fn tracing(&self) -> Option<&TracingOptions> {
+        self.tracing_config.as_ref()
     }
 
     pub fn no_read_min_version(&self) -> Option<&semver::Version> {
@@ -256,8 +256,8 @@ impl<'a> ConfigBuilder<'a> {
         self
     }
 
-    pub fn no_tracing(mut self, choice: bool) -> Self {
-        self.inner.no_tracing = choice;
+    pub fn tracing_config(mut self, cfg: TracingOptions) -> Self {
+        self.inner.tracing_config = Some(cfg);
         self
     }
 
@@ -371,7 +371,15 @@ impl<'config> TryFrom<&'config ArgMatches<'config>> for Config<'config> {
             builder = builder.release_source(release_source);
         }
 
-        builder = builder.no_tracing(matches.is_present(id::ARG_NO_LOG));
+        //
+        if !matches.is_present(id::ARG_NO_LOG) {
+            let mut config = TracingOptions::default();
+
+            /* TODO add --log-target [stdout | file] */
+            /* TODO add --log-level [ ...log levels ] ] */
+
+            builder = builder.tracing_config(config);
+        }
 
         if let Some(cmd) = matches.subcommand_matches(id::SUB_COMMAND_LIST) {
             let cmd_config = ListCmdConfig::try_from_args(cmd)?;
@@ -413,6 +421,37 @@ pub enum SubCommandConfig {
 
 impl SubCommandConfig {
     as_sub_command_config!(list, ListConfig, ListCmdConfig);
+}
+
+#[derive(Debug, Clone)]
+pub struct TracingOptions {
+    target: TracingTargetOption,
+    level: tracing::Level,
+}
+
+impl Default for TracingOptions {
+    fn default() -> Self {
+        Self {
+            target: TracingTargetOption::File,
+            level: tracing::Level::INFO,
+        }
+    }
+}
+
+impl TracingOptions {
+    pub fn target(&self) -> &TracingTargetOption {
+        &self.target
+    }
+
+    pub fn level(&self) -> &tracing::Level {
+        &self.level
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
+pub enum TracingTargetOption {
+    File,
+    Stdout,
 }
 
 #[cfg(test)]

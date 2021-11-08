@@ -1,6 +1,9 @@
 #![deny(clippy::all)]
 #![allow(clippy::upper_case_acronyms, clippy::unnecessary_wraps)]
 
+#[macro_use]
+extern crate tracing;
+
 use rust_releases::{semver, Channel, FetchResources, RustChangelog, RustDist, Source};
 
 use crate::config::{Config, ModeIntent, ReleaseSource};
