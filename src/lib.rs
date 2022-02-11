@@ -21,6 +21,7 @@ pub use crate::{
 
 pub mod check;
 pub mod cli;
+pub(crate) mod cli_v3;
 pub(crate) mod command;
 pub mod config;
 pub(crate) mod dependencies;
@@ -40,6 +41,7 @@ pub(crate) mod search_methods;
 pub(crate) mod subcommands;
 pub(crate) mod toolchain;
 pub(crate) mod toolchain_file;
+
 
 pub fn run_app<R: Output>(config: &Config, reporter: &R) -> TResult<()> {
     reporter.progress(ProgressAction::FetchingIndex);
