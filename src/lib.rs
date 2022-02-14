@@ -4,11 +4,12 @@
 #[macro_use]
 extern crate tracing;
 
+use config::options::action::Action;
 use rust_releases::{
     semver, Channel, FetchResources, ReleaseIndex, RustChangelog, RustDist, Source,
 };
 
-use crate::config::{Config, ModeIntent, ReleaseSource};
+use crate::config::{Config, ReleaseSource};
 use crate::errors::{CargoMSRVError, TResult};
 use crate::reporter::{Output, ProgressAction};
 
@@ -67,7 +68,7 @@ fn fetch_index(config: &Config) -> TResult<ReleaseIndex> {
 }
 
 fn run_action<R: Output>(config: &Config, index: &ReleaseIndex, reporter: &R) -> TResult<()> {
-    let action = config.action_intent();
+    let action = config.action();
 
     info!(
         action = Into::<&'static str>::into(action),
@@ -75,9 +76,9 @@ fn run_action<R: Output>(config: &Config, index: &ReleaseIndex, reporter: &R) ->
     );
 
     match action {
-        ModeIntent::Find => run_find_msrv_action(config, reporter, index),
-        ModeIntent::Verify => run_verify_msrv_action(config, reporter, index),
-        ModeIntent::List => run_list_msrv(config, reporter),
-        ModeIntent::Show => run_show_msrv(config, reporter),
+        Action::Find => run_find_msrv_action(config, reporter, index),
+        Action::Verify => run_verify_msrv_action(config, reporter, index),
+        Action::List => run_list_msrv(config, reporter),
+        Action::Show => run_show_msrv(config, reporter),
     }
 }

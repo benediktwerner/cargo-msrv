@@ -36,7 +36,7 @@ impl<R: Check> Linear<R> {
             let version = releases[i].version();
 
             MinimalCompatibility::CapableToolchain {
-                toolchain: OwnedToolchainSpec::new(version, config.target()),
+                toolchain: OwnedToolchainSpec::new(version, config.target().clone()),
             }
         })
     }

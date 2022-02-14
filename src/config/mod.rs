@@ -3,12 +3,15 @@ use std::path::{Path, PathBuf};
 use toml_edit::{Document, Item};
 
 use crate::config::list::ListCmdConfig;
+use crate::config::options::target::Target;
 use clap::ArgMatches;
+use options::action::Action;
 use rust_releases::semver;
 
 use crate::errors::{CargoMSRVError, IoErrorSource, TResult};
 
 pub(crate) mod list;
+pub mod options;
 
 #[derive(Debug, Clone, Copy)]
 pub enum OutputFormat {
@@ -57,29 +60,6 @@ pub fn test_config_from_matches(matches: &ArgMatches) -> TResult<Config> {
     let mut config = Config::try_from(matches)?;
     config.output_format = OutputFormat::None;
     Ok(config)
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum ModeIntent {
-    // Determines the MSRV for a project
-    Find,
-    // List the MSRV's as specified by package authors
-    List,
-    // Verifies the given MSRV
-    Verify,
-    // Shows the MSRV of the current crate as specified in the Cargo manifest
-    Show,
-}
-
-impl From<ModeIntent> for &'static str {
-    fn from(action: ModeIntent) -> Self {
-        match action {
-            ModeIntent::Find => "determine-msrv",
-            ModeIntent::List => "list-msrv",
-            ModeIntent::Verify => "verify-msrv",
-            ModeIntent::Show => "show-msrv",
-        }
-    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -132,8 +112,8 @@ impl Default for SearchMethod {
 
 #[derive(Debug, Clone)]
 pub struct Config<'a> {
-    mode_intent: ModeIntent,
-    target: String,
+    action: Action,
+    target: Target,
     check_command: Vec<&'a str>,
     crate_path: Option<PathBuf>,
     include_all_patch_releases: bool,
@@ -152,10 +132,10 @@ pub struct Config<'a> {
 }
 
 impl<'a> Config<'a> {
-    pub fn new(mode_intent: ModeIntent, target: String) -> Self {
+    pub fn new(action: Action, target: String) -> Self {
         Self {
-            mode_intent,
-            target,
+            action,
+            target: Target::from(target),
             check_command: vec!["cargo", "check"],
             crate_path: None,
             include_all_patch_releases: false,
@@ -173,11 +153,11 @@ impl<'a> Config<'a> {
         }
     }
 
-    pub fn action_intent(&self) -> ModeIntent {
-        self.mode_intent
+    pub fn action(&self) -> Action {
+        self.action
     }
 
-    pub fn target(&self) -> &String {
+    pub fn target(&self) -> &Target {
         &self.target
     }
 
@@ -250,19 +230,19 @@ pub struct ConfigBuilder<'a> {
 }
 
 impl<'a> ConfigBuilder<'a> {
-    pub fn new(action_intent: ModeIntent, default_target: &str) -> Self {
+    pub fn new(action: Action, default_target: &str) -> Self {
         Self {
-            inner: Config::new(action_intent, default_target.to_string()),
+            inner: Config::new(action, default_target.to_string()),
         }
     }
 
-    pub fn mode_intent(mut self, mode_intent: ModeIntent) -> Self {
-        self.inner.mode_intent = mode_intent;
+    pub fn set_action(mut self, action: Action) -> Self {
+        self.inner.action = action;
         self
     }
 
-    pub fn target(mut self, target: &str) -> Self {
-        self.inner.target = target.to_string();
+    pub fn set_target(mut self, target: &str) -> Self {
+        self.inner.target = target.into();
         self
     }
 
@@ -349,15 +329,15 @@ impl<'config> TryFrom<&'config ArgMatches> for Config<'config> {
         use crate::fetch::default_target;
 
         let action_intent = if matches.subcommand_matches(id::SUB_COMMAND_LIST).is_some() {
-            ModeIntent::List
+            Action::List
         } else if matches.subcommand_matches(id::SUB_COMMAND_SHOW).is_some() {
-            ModeIntent::Show
+            Action::Show
         } else if matches.subcommand_matches(id::SUB_COMMAND_VERIFY).is_some()
             || matches.is_present(id::ARG_VERIFY)
         {
-            ModeIntent::Verify
+            Action::Verify
         } else {
-            ModeIntent::Find
+            Action::Find
         };
 
         // FIXME: if set, we don't need to do this; in case we can't find it, it may fail here, but atm can't be manually supplied at all
@@ -378,7 +358,7 @@ impl<'config> TryFrom<&'config ArgMatches> for Config<'config> {
         // set a custom target
         let custom_target = matches.value_of(id::ARG_SEEK_CUSTOM_TARGET);
         if let Some(target) = custom_target {
-            builder = builder.target(target);
+            builder = builder.set_target(target);
         }
 
         match matches.value_of(id::ARG_MIN) {

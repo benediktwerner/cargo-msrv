@@ -3,7 +3,8 @@ use std::path::{Path, PathBuf};
 
 use tracing_appender::rolling::{RollingFileAppender, Rotation};
 
-use cargo_msrv::config::{self, Config, ModeIntent, TracingOptions, TracingTargetOption};
+use cargo_msrv::config::options::action::Action;
+use cargo_msrv::config::{self, Config, TracingOptions, TracingTargetOption};
 use cargo_msrv::errors::{CargoMSRVError, TResult};
 use cargo_msrv::exit_code::ExitCode;
 use cargo_msrv::reporter;
@@ -87,7 +88,7 @@ fn init_and_run(config: &Config) -> TResult<()> {
             run_app(config, &reporter)
         }
         config::OutputFormat::Json => {
-            let custom_cmd = if let ModeIntent::List = config.action_intent() {
+            let custom_cmd = if let Action::List = config.action() {
                 None
             } else {
                 Some(config.check_command_string())

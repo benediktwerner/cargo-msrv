@@ -4,19 +4,20 @@ use json::object::Object;
 use json::JsonValue;
 use rust_releases::semver;
 
-use crate::config::ModeIntent;
+use crate::config::options::action::Action;
+use crate::config::options::target::Target;
 use crate::reporter::ProgressAction;
 
 #[derive(Debug)]
 pub struct JsonPrinter<'a> {
     finished: Cell<u64>,
     steps: Cell<u64>,
-    toolchain: &'a str,
+    toolchain: &'a Target,
     cmd: Option<&'a str>,
 }
 
 impl<'a> JsonPrinter<'a> {
-    pub fn new(steps: u64, toolchain: &'a str, cmd: Option<&'a str>) -> Self {
+    pub fn new(steps: u64, toolchain: &'a Target, cmd: Option<&'a str>) -> Self {
         Self {
             finished: Cell::new(0),
             steps: Cell::new(steps),
@@ -25,24 +26,24 @@ impl<'a> JsonPrinter<'a> {
         }
     }
 
-    fn reason(mode: ModeIntent) -> &'static str {
+    fn reason(mode: Action) -> &'static str {
         match mode {
-            ModeIntent::Find => "msrv-complete",
-            ModeIntent::Verify => "verify-complete",
-            ModeIntent::List => "list-complete",
-            ModeIntent::Show => "show-complete",
+            Action::Find => "msrv-complete",
+            Action::Verify => "verify-complete",
+            Action::List => "list-complete",
+            Action::Show => "show-complete",
         }
     }
 }
 
 impl<'a> crate::Output for JsonPrinter<'a> {
-    fn mode(&self, mode: ModeIntent) {
+    fn mode(&self, mode: Action) {
         let mode: &str = mode.into();
 
         let mut object = Object::new();
         object.insert("reason", "mode".into());
         object.insert("mode", mode.into());
-        object.insert("toolchain", self.toolchain.into());
+        object.insert("toolchain", self.toolchain.target().into());
 
         if let Some(cmd) = self.cmd {
             object.insert("check_cmd", cmd.into());
@@ -69,7 +70,7 @@ impl<'a> crate::Output for JsonPrinter<'a> {
                 object.insert("version", version.to_string().into());
                 object.insert("step", self.finished.get().into());
                 object.insert("total", self.steps.get().into());
-                object.insert("toolchain", self.toolchain.into());
+                object.insert("toolchain", self.toolchain.target().into());
 
                 if let Some(cmd) = self.cmd {
                     object.insert("check_cmd", cmd.into());
@@ -95,14 +96,14 @@ impl<'a> crate::Output for JsonPrinter<'a> {
                 step: self.finished.get(),
                 total_steps: self.steps.get(),
                 success: success,
-                toolchain: self.toolchain,
+                toolchain: self.toolchain.target(),
                 check_cmd: self.cmd,
             }
         );
         self.finished.set(self.finished.get() + 1);
     }
 
-    fn finish_success(&self, mode: ModeIntent, version: Option<&semver::Version>) {
+    fn finish_success(&self, mode: Action, version: Option<&semver::Version>) {
         let reason = Self::reason(mode);
 
         let mut object = Object::new();
@@ -113,7 +114,7 @@ impl<'a> crate::Output for JsonPrinter<'a> {
             object.insert("msrv", version.to_string().into());
         }
 
-        object.insert("toolchain", self.toolchain.into());
+        object.insert("toolchain", self.toolchain.target().into());
 
         if let Some(cmd) = self.cmd {
             object.insert("check_cmd", cmd.into());
@@ -122,13 +123,13 @@ impl<'a> crate::Output for JsonPrinter<'a> {
         println!("{}", JsonValue::Object(object));
     }
 
-    fn finish_failure(&self, mode: ModeIntent, _: Option<&str>) {
+    fn finish_failure(&self, mode: Action, _: Option<&str>) {
         let reason = Self::reason(mode);
 
         let mut object = Object::new();
         object.insert("reason", reason.into());
         object.insert("success", false.into());
-        object.insert("toolchain", self.toolchain.into());
+        object.insert("toolchain", self.toolchain.target().into());
 
         if let Some(cmd) = self.cmd {
             object.insert("check_cmd", cmd.into());

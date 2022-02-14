@@ -44,7 +44,7 @@ impl<R: Check> Bisect<R> {
             let version = release.version();
 
             MinimalCompatibility::CapableToolchain {
-                toolchain: OwnedToolchainSpec::new(version, config.target()),
+                toolchain: OwnedToolchainSpec::new(version, config.target().clone()),
             }
         })
     }
@@ -119,12 +119,13 @@ impl<R: Check> FindMinimalCapableToolchain for Bisect<R> {
 mod tests {
     use super::Bisect;
     use crate::check::Check;
+    use crate::config::options::action::Action;
     use crate::outcome::{FailureOutcome, Outcome, SuccessOutcome};
     use crate::reporter::no_output::NoOutput;
     use crate::search_methods::FindMinimalCapableToolchain;
     use crate::semver::Version;
     use crate::toolchain::{OwnedToolchainSpec, ToolchainSpec};
-    use crate::{semver, Config, ModeIntent, TResult};
+    use crate::{semver, Config, TResult};
     use rust_releases::Release;
     use std::collections::BTreeSet;
     use std::iter::FromIterator;
@@ -146,11 +147,17 @@ mod tests {
         fn check(&self, config: &Config, toolchain: &ToolchainSpec) -> TResult<Outcome> {
             if self.successes.contains(toolchain.version()) {
                 Ok(Outcome::Success(SuccessOutcome {
-                    toolchain_spec: OwnedToolchainSpec::new(toolchain.version(), config.target()),
+                    toolchain_spec: OwnedToolchainSpec::new(
+                        toolchain.version(),
+                        config.target().clone(),
+                    ),
                 }))
             } else {
                 Ok(Outcome::Failure(FailureOutcome {
-                    toolchain_spec: OwnedToolchainSpec::new(toolchain.version(), config.target()),
+                    toolchain_spec: OwnedToolchainSpec::new(
+                        toolchain.version(),
+                        config.target().clone(),
+                    ),
                     error_message: "".to_string(),
                 }))
             }
@@ -158,7 +165,7 @@ mod tests {
     }
 
     fn fake_config() -> Config<'static> {
-        Config::new(ModeIntent::Find, "".to_string())
+        Config::new(Action::Find, "".to_string())
     }
 
     #[yare::parameterized(

@@ -3,7 +3,8 @@ use std::fmt::Debug;
 use crate::Config;
 use rust_releases::semver;
 
-use crate::config::{ModeIntent, OutputFormat};
+use crate::config::options::action::Action;
+use crate::config::OutputFormat;
 use crate::formatter::{FormatUserOutput, Human, Json};
 use crate::outcome::{FailureOutcome, SuccessOutcome};
 
@@ -20,7 +21,7 @@ pub enum ProgressAction<'a> {
 
 pub trait Output: Debug {
     // Shows the mode in which cargo-msrv will operate
-    fn mode(&self, mode: ModeIntent);
+    fn mode(&self, mode: Action);
 
     // Sets the remaining amount of steps for the mode
     fn set_steps(&self, steps: u64);
@@ -28,8 +29,8 @@ pub trait Output: Debug {
     // Reports the currently running
     fn progress(&self, action: ProgressAction);
     fn complete_step(&self, version: &semver::Version, success: bool);
-    fn finish_success(&self, mode: ModeIntent, version: Option<&semver::Version>);
-    fn finish_failure(&self, mode: ModeIntent, cmd: Option<&str>);
+    fn finish_success(&self, mode: Action, version: Option<&semver::Version>);
+    fn finish_failure(&self, mode: Action, cmd: Option<&str>);
 
     fn write_line(&self, content: &str);
 }
@@ -40,7 +41,7 @@ pub mod __private {
 
     use rust_releases::semver;
 
-    use crate::config::ModeIntent;
+    use crate::config::options::action::Action;
     use crate::reporter::{Output, ProgressAction};
 
     /// This is meant to be used for testing
@@ -56,15 +57,15 @@ pub mod __private {
     }
 
     impl Output for SuccessOutput {
-        fn mode(&self, _action: ModeIntent) {}
+        fn mode(&self, _action: Action) {}
         fn set_steps(&self, _steps: u64) {}
         fn progress(&self, _action: ProgressAction) {}
         fn complete_step(&self, version: &semver::Version, success: bool) {
             let mut successes = self.successes.borrow_mut();
             successes.push((success, version.clone()));
         }
-        fn finish_success(&self, _mode: ModeIntent, _version: Option<&semver::Version>) {}
-        fn finish_failure(&self, _mode: ModeIntent, _cmd: Option<&str>) {}
+        fn finish_success(&self, _mode: Action, _version: Option<&semver::Version>) {}
+        fn finish_failure(&self, _mode: Action, _cmd: Option<&str>) {}
         fn write_line(&self, _content: &str) {}
     }
 

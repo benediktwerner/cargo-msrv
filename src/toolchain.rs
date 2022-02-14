@@ -1,15 +1,16 @@
+use crate::config::options::target::Target;
 use once_cell::unsync::OnceCell;
 use rust_releases::semver;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct ToolchainSpec<'spec> {
     version: &'spec semver::Version,
-    target: &'spec str,
+    target: &'spec Target,
     spec: once_cell::unsync::OnceCell<String>,
 }
 
 impl<'spec> ToolchainSpec<'spec> {
-    pub fn new(version: &'spec semver::Version, target: &'spec str) -> Self {
+    pub fn new(version: &'spec semver::Version, target: &'spec Target) -> Self {
         Self {
             version,
             target,
@@ -19,7 +20,7 @@ impl<'spec> ToolchainSpec<'spec> {
 
     pub fn spec(&self) -> &str {
         self.spec
-            .get_or_init(|| make_toolchain_spec(self.version, self.target))
+            .get_or_init(|| make_toolchain_spec(self.version, self.target.target()))
     }
 
     pub fn version(&self) -> &semver::Version {
@@ -29,7 +30,7 @@ impl<'spec> ToolchainSpec<'spec> {
     pub fn to_owned(&self) -> OwnedToolchainSpec {
         OwnedToolchainSpec {
             version: self.version.clone(),
-            target: self.target.to_string(),
+            target: self.target.clone(),
             spec: self.spec.clone(),
         }
     }
@@ -38,22 +39,22 @@ impl<'spec> ToolchainSpec<'spec> {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct OwnedToolchainSpec {
     version: semver::Version,
-    target: String,
+    target: Target,
     spec: once_cell::unsync::OnceCell<String>,
 }
 
 impl OwnedToolchainSpec {
-    pub fn new(version: &semver::Version, target: &str) -> Self {
+    pub fn new(version: &semver::Version, target: Target) -> Self {
         Self {
             version: version.clone(),
-            target: target.to_string(),
+            target,
             spec: OnceCell::new(),
         }
     }
 
     pub fn spec(&self) -> &str {
         self.spec
-            .get_or_init(|| make_toolchain_spec(&self.version, &self.target))
+            .get_or_init(|| make_toolchain_spec(&self.version, self.target.target()))
     }
 
     pub fn version(&self) -> &semver::Version {

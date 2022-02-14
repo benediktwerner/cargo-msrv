@@ -1,7 +1,8 @@
 use rust_releases::{Release, ReleaseIndex};
 
 use crate::check::RunCheck;
-use crate::config::{Config, ModeIntent, SearchMethod};
+use crate::config::options::action::Action;
+use crate::config::{Config, SearchMethod};
 use crate::errors::{CargoMSRVError, TResult};
 use crate::releases::filter_releases;
 use crate::reporter::Output;
@@ -45,7 +46,7 @@ pub fn find_msrv<R: Output>(
     let releases = index.releases();
     let included_releases = filter_releases(config, releases);
 
-    reporter.mode(ModeIntent::Find);
+    reporter.mode(Action::Find);
     reporter.set_steps(included_releases.len() as u64);
     run_with_search_method(config, &included_releases, reporter)
 }
@@ -89,10 +90,10 @@ fn run_searcher(
 fn report_outcome(minimum_capable: &MinimalCompatibility, config: &Config, output: &impl Output) {
     match minimum_capable {
         MinimalCompatibility::CapableToolchain { toolchain } => {
-            output.finish_success(ModeIntent::Find, Some(toolchain.version()));
+            output.finish_success(Action::Find, Some(toolchain.version()));
         }
         MinimalCompatibility::NoCompatibleToolchains => {
-            output.finish_failure(ModeIntent::Find, Some(&config.check_command_string()));
+            output.finish_failure(Action::Find, Some(&config.check_command_string()));
         }
     }
 }

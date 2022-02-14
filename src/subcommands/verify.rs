@@ -5,7 +5,8 @@ use rust_releases::{semver, Release, ReleaseIndex};
 use toml_edit::Document;
 
 use crate::check::{Check, RunCheck};
-use crate::config::{Config, ModeIntent};
+use crate::config::options::action::Action;
+use crate::config::Config;
 use crate::errors::{CargoMSRVError, IoErrorSource, TResult};
 use crate::manifest::{CargoManifest, CargoManifestParser, TomlParser};
 use crate::outcome::Outcome;
@@ -36,7 +37,7 @@ pub fn run_verify_msrv_action<R: Output>(
     let version = version.try_to_semver(release_index.releases().iter().map(Release::version))?;
 
     let cmd = config.check_command_string();
-    reporter.mode(ModeIntent::Verify);
+    reporter.mode(Action::Verify);
 
     let runner = RunCheck::new(reporter);
     let toolchain = ToolchainSpec::new(version, config.target());
@@ -55,9 +56,9 @@ pub fn run_verify_msrv_action<R: Output>(
 
 fn report_verify_completion(output: &impl Output, outcome: &Outcome, cmd: &str) {
     if outcome.is_success() {
-        output.finish_success(ModeIntent::Verify, Some(outcome.version()));
+        output.finish_success(Action::Verify, Some(outcome.version()));
     } else {
-        output.finish_failure(ModeIntent::Verify, Some(cmd));
+        output.finish_failure(Action::Verify, Some(cmd));
     }
 }
 

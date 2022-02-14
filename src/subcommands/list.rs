@@ -1,5 +1,6 @@
 use crate::config::list::ListVariant;
-use crate::config::{Config, ModeIntent, OutputFormat};
+use crate::config::options::action::Action;
+use crate::config::{Config, OutputFormat};
 use crate::dependencies::resolver::{CargoMetadataResolver, DependencyResolver};
 use crate::errors::TResult;
 use crate::reporter::Output;
@@ -7,7 +8,7 @@ use crate::reporter::Output;
 pub fn run_list_msrv<R: Output>(config: &Config, output: &R) -> TResult<()> {
     use crate::dependencies::formatter;
 
-    output.mode(ModeIntent::List);
+    output.mode(Action::List);
 
     let resolver = CargoMetadataResolver::try_from_config(config)?;
     let graph = resolver.resolve()?;
@@ -41,7 +42,7 @@ pub fn run_list_msrv<R: Output>(config: &Config, output: &R) -> TResult<()> {
         },
     }
 
-    output.finish_success(ModeIntent::List, None);
+    output.finish_success(Action::List, None);
 
     Ok(())
 }
